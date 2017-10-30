@@ -1,159 +1,8 @@
-# vim-go-tutorial
+`:GoRun`
 
-Tutorial for vim-go. A simple tutorial on how to install and use vim-go.
+`:GoBuild`
 
-# Table of Contents
-
-1. [Quick Setup](#quick-setup)
-2. [Hello World](#hello-world)
-3. [Run it](#run-it)
-4. [Build it](#build-it)
-5. [Fix it](#fix-it)
-6. [Test it](#test-it)
-7. [Cover it](#cover-it)
-8. [Edit it](#edit-it)
-  * [Imports](#imports)
-  * [Text Objects](#text-objects)
-  * [Struct split&join](#struct-split-and-join)
-  * [Snippets](#snippets)
-9. [Beautify it](#beautify-it)
-10. [Check it](#check-it)
-11. [Navigate it](#navigate-it)
-  * [Alternate files](#alternate-files)
-  * [Go to definition](#go-to-definition)
-  * [Move between functions](#move-between-functions)
-12. [Understand it](#understand-it)
-  * [Documentation Lookup](#documentation-lookup)
-  * [Identifier resolution](#identifier-resolution)
-  * [Identifier highlighting](#identifier-highlighting)
-  * [Dependencies and files](#dependencies-and-files)
-  * [Guru](#guru)
-13. [Refactor it](#refactor-it)
-  * [Rename identifiers](#rename-identifiers)
-  * [Extract function](#extract-function)
-14. [Generate it](#generate-it)
-  * [Method stubs implementing an interface](#method-stubs-implementing-an-interface)
-15. [Share it](#share-it)
-
-# Quick Setup
-
-We're going to use `vim-plug` to install vim-go. Feel free to use other plugin
-managers instead. We will create a minimal `~/.vimrc`, and add to it as we go along.
-
-First fetch and install `vim-plug` along with `vim-go`:
-
-```
-curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-git clone https://github.com/fatih/vim-go.git ~/.vim/plugged/vim-go
-```
-
-Create `~/.vimrc` with following content:
-
-```vim
-call plug#begin()
-Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
-call plug#end()
-```
-
-Or open Vim and execute `:GoInstallBinaries`. This is a `vim-go` command that
-installs all `vim-go` dependencies for you. It doesn't download pre compiled
-binaries, instead it calls `go get` under the hood, so the binaries are all
-compiled in your host machine (which is both safe and simplifies the
-installation process as we don't need to provide binaries for multiple
-platforms). If you already have some of the dependencies (such as `guru`,
-`goimports`) call `:GoUpdateBinaries` to update the binaries. 
-
-For the tutorial, all our examples will be under
-`GOPATH/src/github.com/fatih/vim-go-tutorial/`. Please be sure you're inside
-this folder. This will make it easy to follow the
-tutorial. If you already have a `GOPATH` set up just execute:
-
-```
-go get github.com/fatih/vim-go-tutorial
-```
-
-Or create the folder, if necessary. 
-
-
-# Hello World!
-
-Open the `main.go` file from your terminal:
-
-```
-vim main.go
-```
-
-It's a very basic file that prints `vim-go` to stdout.
-
-# Run it
-
-You can easily run the file with `:GoRun`. Under the hood it calls `go run` for
-the current file. You should see that it prints `vim-go`.
-
-# Build it
-
-Replace `vim-go` with `Hello Gophercon`. Let us compile the file instead of running it.
-For this we have `:GoBuild`. If you call it, you should see this message: 
-
-```
-vim-go: [build] SUCCESS
-```
-
-Under the hood it calls `go build`, but it's a bit smarter. It does a couple of
-things differently: 
-
-* No binaries are created; you can call `:GoBuild` multiple times without
-  polluting your workspace.
-* It automatically `cd`s into the source package's directory
-* It parses any errors and shows them inside a quickfix list 
-* It automatically detects the GOPATH and modifies it if needed (detects
-  projects such as `gb`, `Godeps`, etc..)
-* Runs async if used within Vim 8.0.xxx or NeoVim
-
-# Fix it
-
-Let's introduce two errors by adding two compile errors:
-
-```go
-var b = foo()
-
-func main() {
-	fmt.Println("Hello GopherCon")
-	a
-}
-```
-
-Save the file and call `:GoBuild` again. 
-
-This time the quickfix view will be opened. To jump between the errors you can
-use `:cnext` and `:cprevious`. Let us fix the first error, save the
-file and call `:GoBuild` again. You'll see the quickfix list is updated with a
-single error. Remove the second error as well, save the file and call
-`:GoBuild` again. Now because there are no more errors, vim-go automatically
-closes the quickfix window for you.
-
-Let us improve it a little bit. Vim has a setting called `autowrite` that
-writes the content of the file automatically if you call `:make`. vim-go also
-makes use of this setting. Open your `.vimrc` and add the following:
-
-```
-set autowrite
-```
-
-Now you don't have to save your file anymore when you call `:GoBuild`.  If we
-reintroduce the two errors and call `:GoBuild`, we can now iterate much more
-quickly by only calling `:GoBuild`.
-
-`:GoBuild` jumps to the first error encountered. If you don't want to jump
-append the `!` (bang) sign: `:GoBuild!`.
-
-In all the `go` commands, such as `:GoRun`, `:GoInstall`, `:GoTest`, etc..,
-whenever there is an error the quickfix window always will pop up.
-
-### vimrc improvements
-
-* You can add some shortcuts to make it easier to jump between errors in quickfix
-list:
+quickfix: `:cnext` and `:cprevious`
 
 ```vi
 map <C-n> :cnext<CR>
@@ -161,551 +10,64 @@ map <C-m> :cprevious<CR>
 nnoremap <leader>a :cclose<CR>
 ```
 
-* I also use these shortcuts to build and run a Go program with `<leader>b` and
-`<leader>r`:
-
 ```vim
 autocmd FileType go nmap <leader>b  <Plug>(go-build)
 autocmd FileType go nmap <leader>r  <Plug>(go-run)
 ```
 
-* There are two types of error lists in Vim. One is called `location list` the
-other `quickfix`. Unfortunately the commands for each lists are different. So
-`:cnext` only works for `quickfix` list, for `location lists` you have to use
-`:lnext`. Some of the commands in `vim-go` open a location list, because
-location lists are associated with a window and each window can have a
-separate list. This means you can have multiple windows, and multiple
-location lists, one for `Build`, one for `Check`, one for `Tests`, etc..
 
-Some people prefer to use only `quickfix` though. If you add the following to
-your `vimrc` all lists will be of type `quickfix`:
+## Test
 
-```vim
-let g:go_list_type = "quickfix"
-```
+`:GoTest` (`go test`)
 
-# Test it
+`:GoTestFunc` tests function under cursor
 
-Let's write a simple function and a test for the function. Add the following:
+`:GoTestCompile` check that test file compiles (does not run tests)
 
+## Coverage
 
-```go
-func Bar() string {
-	return "bar"
-}
-```
+`:GoCoverage` (`go test -coverprofile tempfile`)
 
-Open a new file called `main_test.go` (it doesn't matter how you open it, from
-inside Vim, a separate Vim session, etc.. it's up to you). Let us use the
-current buffer and open it from Vim via `:edit main_test.go`.
+`:GoCoverageClear` clears coverage highlighting
 
-When you open the new file you notice something. The file automatically has the
-package declaration added:
+`:GoCoverageToggle`
 
-```go
-package main
-```
+`:GoCoverageBrowser` (`go tool cover` to create a HTML page and opens)
 
-This is done by vim-go automatically. It detected that the file is inside a
-valid package and therefore created a file based on the package name (in our
-case the package name was `main`). If there are no files, vim-go automatically
-populates the content with a simple main package.
+## Imports
 
-Update the test file with the following code:
+`:GoImport strings` (has tab completion support)
 
-```go
-package main
+`:GoImportAs str strings`
 
-import (
-	"testing"
-)
+`:GoDrop strings` removes it from the import declarations
 
-func TestBar(t *testing.T) {
-	result := Bar()
-	if result != "bar" {
-		t.Errorf("expecting bar, got %s", result)
-	}
-}
-```
-
-Call `:GoTest`. You'll see the following message:
-
-```
-vim-go: [test] PASS
-```
-
-`:GoTest` calls `go test` under the hood. It has the same improvements
-we have for `:GoBuild`. If there is any test error, a quickfix list is
-opened again and you can jump to it easily.
-
-Another small improvement is that you don't have to open the test file itself.
-Try it yourself: open `main.go` and call `:GoTest`. You'll see the tests will
-be run for you as well.
-
-`:GoTest` times out after 10 seconds by default. This is useful because Vim is
-not async by default. You can change the timeout value with `let g:go_test_timeout = '10s'`
-
-We have two more commands that makes it easy to deal with test files. The first
-one is `:GoTestFunc`. This only tests the function under your cursor.
-Let us change the content of the test file (`main_test.go`) to:
-
-```go
-package main
-
-import (
-	"testing"
-)
-
-func TestFoo(t *testing.T) {
-	t.Error("intentional error 1")
-}
-
-func TestBar(t *testing.T) {
-	result := Bar()
-	if result != "bar" {
-		t.Errorf("expecting bar, got %s", result)
-	}
-}
-
-func TestQuz(t *testing.T) {
-	t.Error("intentional error 2")
-}
-```
-
-Now when we call `:GoTest` a quickfix window will open with two errors.
-However if go inside the `TestBar` function and call `:GoTestFunc`, you'll see
-that our test passes!  This is really useful if you have a lot of tests that
-take time and you only want to run certain tests.
-
-The other test-related command is `:GoTestCompile`. Tests not only need to
-pass with success, they must compile without any problems.
-`:GoTestCompile` compiles your test file, just like `:GoBuild` and opens a
-quickfix if there are any errors. This however **doesn't run** the tests. This
-is very useful if you have a large test which you're editing a lot. Call
-`:GoTestCompile` in the current test file, you should see the following:
-
-```
-vim-go: [test] SUCCESS 
-```
-
-### vimrc improvements
-
-* As with `:GoBuild` we can add a mapping to easily call `:GoTest` with a key
-combination. Add the following to your `.vimrc`:
-
-```vim
-autocmd FileType go nmap <leader>t  <Plug>(go-test)
-```
-
-Now you can easily test your files via `<leader>t`
-
-* Let's make building Go files simpler. First, remove the following mapping we added
-  previously:
-
-```vim
-autocmd FileType go nmap <leader>b  <Plug>(go-build)
-```
-
-We're going to add an improved mapping. To make it seamless for
-any Go file we can create a simple Vim function that checks the type of the Go
-file, and executes `:GoBuild` or `:GoTestCompile`.  Below is the helper function
-you can add to your `.vimrc`:
-
-```vim
-" run :GoBuild or :GoTestCompile based on the go file
-function! s:build_go_files()
-  let l:file = expand('%')
-  if l:file =~# '^\f\+_test\.go$'
-    call go#test#Test(0, 1)
-  elseif l:file =~# '^\f\+\.go$'
-    call go#cmd#Build(0)
-  endif
-endfunction
-
-autocmd FileType go nmap <leader>b :<C-u>call <SID>build_go_files()<CR>
-```
-
-Now whenever you hit `<leader>b` it'll build either your Go file or it'll
-compile your test files seamlessly.
-
-* By default the leader shortcut is defined as: `\` I've mapped my leader to
-`,` as I find it more useful with the following setting (put this in the
-beginning of .vimrc):
-
-```vim
-let mapleader = ","
-```
-
-So with this setting, we can easily build any test and non test files with `,b`.
-
-# Cover it
-
-Let's dive further into the world of tests. Tests are really important. Go
-has a really great way of showing the coverage of your source code. vim-go
-makes it easy to see the code coverage without leaving Vim in a very elegant
-way.
-
-
-Let's first change our `main_test.go` file back to:
-
-```go
-package main
-
-import (
-	"testing"
-)
-
-func TestBar(t *testing.T) {
-	result := Bar()
-	if result != "bar" {
-		t.Errorf("expecting bar, got %s", result)
-	}
-}
-```
-
-And `main.go` to
-
-
-```go
-package main
-
-func Bar() string {
-	return "bar"
-}
-
-func Foo() string {
-	return "foo"
-}
-
-func Qux(v string) string {
-	if v == "foo" {
-		return Foo()
-	}
-
-	if v == "bar" {
-		return Bar()
-	}
-
-	return "INVALID"
-}
-```
-
-Now let us call `:GoCoverage`. Under the hood this calls `go test -coverprofile
-tempfile`. It parses the lines from the profile and then dynamically changes
-the syntax of your source code to reflect the coverage. As you see, because we
-only have a test for the `Bar()` function, that is the only function that is
-green. 
-
-To clear the syntax highlighting you can call `:GoCoverageClear`. Let us add a
-test case and see how the coverage changes. Add the following to `main_test.go`:
-
-```go
-func TestQuz(t *testing.T) {
-	result := Qux("bar")
-	if result != "bar" {
-		t.Errorf("expecting bar, got %s", result)
-	}
-
-	result = Qux("qux")
-	if result != "INVALID" {
-		t.Errorf("expecting INVALID, got %s", result)
-	}
-}
-```
-
-If we call `:GoCoverage` again, you'll see that the `Quz` function is now
-tested as well and that it has a larger coverage. Call `:GoCoverageClear` again
-to clear the syntax highlighting.
-
-Because calling `:GoCoverage` and `:GoCoverageClear` are used a lot together,
-there is another command that makes it easy to call and clear the result. You
-can also use `:GoCoverageToggle`. This acts as a toggle and shows the coverage,
-and when called again it clears the coverage.  It's up to your workflow how you
-want to use them.
-
-Finally, if you don't like vim-go's internal view, you can also call
-`:GoCoverageBrowser`. Under the hood it uses `go tool cover` to create a HTML
-page and then opens it in your default browser. Some people like this more.
-
-Using the `:GoCoverageXXX` commands do not create any kind of temporary files.
-It doesn't pollute your workflow. So you don't have to deal with removing
-unwanted files every time.
-
-### vimrc improvements
-
-Add the following to your `.vimrc`:
-
-```vim
-autocmd FileType go nmap <Leader>c <Plug>(go-coverage-toggle)
-```
-
-With this you can easily call `:GoCoverageToggle` with `<leader>c`
-
-
-# Edit it
-
-### Imports
-
-Let us start with a sample `main.go` file:
-
-```go
-package main
-
-     import "fmt"
-
-func main() {
- fmt.Println("gopher"     )
-}
-```
-
-Let's start with something we know already. If we save the file, you'll see that
-it'll be formatted automatically. It's enabled by default but can be disabled
-if desired (not sure why you would though :)) with `let g:go_fmt_autosave = 0`.
-Optionally we also provide `:GoFmt` command, which runs `gofmt` under the hood.
-
-Let's print the `"gopher"` string in all uppercase. For it we're going to use
-the `strings` package. Change the definition to:
-
-```go
-fmt.Println(strings.ToUpper("gopher"))
-```
-
-When you build it you'll get an error of course:
-
-```
-main.go|8| undefined: strings in strings.ToUpper
-```
-
-You'll see we get an error because the `strings` package is not imported. vim-go
-has a couple of commands to make it easy to manipulate the import declarations.
-
-We can easily go and edit the file, but instead we're going to use the Vim
-command `:GoImport`. This command adds the given package to the import path.
-Run it via: `:GoImport strings`. You'll see the `strings` package is being
-added.  The great thing about this command is that it also supports
-completion. So you can just type `:GoImport s` and hit tab.
-
-We also have `:GoImportAs` and `:GoDrop` to edit the import paths.
-`:GoImportAs` is the same as `:GoImport`, but it allows changing the package
-name. For example `:GoImportAs str strings`, will import `strings` with the
-package name `str.`
-
-Finally `:GoDrop` makes it easy to remove any import paths from the import
-declarations. `:GoDrop strings` will remove it from the import declarations.
-
-Of course manipulating import paths is so 2010. We have better tools to handle
-this case for us. If you haven't heard yet, it's called `goimports`.
-`goimports` is a replacement for `gofmt`. You have two ways of using it. The
-first (and recommended) way is telling vim-go to use it when saving the
-file:
+`goimports` is a replacement for `gofmt`
 
 ```
 let g:go_fmt_command = "goimports"
 ```
 
-Now whenever you save your file, `goimports` will automatically format and also
-rewrite your import declarations. Some people do not prefer `goimports` as it
-might be slow on very large codebases. In this case we also have the
-`:GoImports` command (note the `s` at the end). With this, you can explicitly
-call `goimports`
-
+Some people do not prefer `goimports` as it might be slow on very large codebases. 
+In this case we also have the `:GoImports` command (note the `s` at the end). With this, you can explicitly call `goimports`
 
 ### Text objects
 
-Let us show more editing tips/tricks. There are two text objects that we can
-use to change functions. Those are `if` and `af`. `if` means inner function and
-it allows you to select the content of a function enclosure. Change your `main.go` file to:
+`if` inner function
+`af` `a function` (includes function declaration and function comment)
 
-
-```go
-package main
-
-import "fmt"
-
-func main() {
-	fmt.Println(1)
-	fmt.Println(2)
-	fmt.Println(3)
-	fmt.Println(4)
-	fmt.Println(5)
-}
-```
-
-Put your cursor on the `func` keyword  Now execute the following in `normal`
-mode and see what happens:
-
-```
-dif
-```
-
-You'll see that the function body is removed. Because we used the `d` operator.
-Undo your changes with `u`. The great thing is that your cursor can be anywhere
-starting from the `func` keyword until the closing right brace `}`. It uses the tool
-[motion](https://github.com/fatih/motion) under the hood. I wrote motion
-explicitly for vim-go to support features like this. It's Go AST aware and thus
-its capabilities are really good. Like what you might ask? Change `main.go` to:
-
-```go
-package main
-
-import "fmt"
-
-func Bar() string {
-	fmt.Println("calling bar")
-
-	foo := func() string {
-		return "foo"
-	}
-
-	return foo()
-}
-```
-
-Previously we were using regexp-based text objects. And it lead to problems.
-For example in this example, put your cursor to the anonymous functions' `func`
-keyword and execute `dif` in `normal` mode. You'll see that only the body of
-the anonymous function is deleted.
-
-We have only used the `d` operator (delete) so far. However it's up to you. For
-example you can select it via `vif` or yank(copy) with `yif`.
-
-We also have `af`, which means `a function`. This text object includes the
-whole function declaration. Change your `main.go` to:
-
-
-```go
-package main
-
-import "fmt"
-
-// bar returns a the string "foo" even though it's named as "bar". It's an
-// example to be used with vim-go's tutorial to show the 'if' and 'af' text
-// objects.
-func bar() string {
-	fmt.Println("calling bar")
-
-	foo := func() string {
-		return "foo"
-	}
-
-	return foo()
-}
-```
-
-
-So here is the great thing. Because of `motion` we have full knowledge about
-every single syntax node. Put your cursor on top of the `func`  keyword or
-anywhere below or above (doesn't matter). If you now execute `vaf`, you'll see
-that the function declaration is being selected, along with the doc comment as
-well! You can for example delete the whole function with `daf`, and you'll see
-that the comment is gone as well. Go ahead and put your cursor on top of the
-comment and execute `vif` and then `vaf`. You'll see that it selects the
-function body, even though your cursor is outside the function, or it selects
-the function comments as well.
-
-This is really powerful and this all is thanks to the knowledge we have from
-let g:go_textobj_include_function_doc = 1 `motion`. If you don't like comments
-being a part of the function declaration, you can easily disable it with:
+If you don't like comments being a part of the function declaration, you can easily disable it with:
 
 ```vim
 let g:go_textobj_include_function_doc = 0
 ```
 
-If you are interested in learning more about `motion`, check out the blog post I wrote for
-more details: [Treating Go types as objects in vim](https://medium.com/@farslan/treating-go-types-as-objects-in-vim-ed6b3fad9287#.45q2rtqgf)
+`gS` when cursor on the same line as struct expression will split struct expression into multiple lines
+`gJ` in normal mode joins all field definitions
 
-(Optional question: without looking at the `go/ast` package, is the doc comment
-a part of the function declaration or not?)
+## Snippets
 
-### Struct split and join
-There is a great plugin that allows you to split or join Go structs. It's
-actually not a Go plugin, but it has support for Go structs. To enable it add
-plugin directive between the `plug` definition into your `vimrc` and run
-`:PlugInstall`. Example:
-
-```vim
-call plug#begin()
-Plug 'fatih/vim-go'
-Plug 'AndrewRadev/splitjoin.vim'
-call plug#end()
-```
-
-Once you have installed the plugin, change the `main.go` file to:
-
-```go
-package main
-
-type Foo struct {
-	Name    string
-	Ports   []int
-	Enabled bool
-}
-
-func main() {
-	foo := Foo{Name: "gopher", Ports: []int{80, 443}, Enabled: true}
-}
-```
-
-Put your cursor on the same line as the struct expression. Now type `gS`. This
-will `split` the struct expression into multiple lines. And you can even
-reverse it. If your cursor is still on the `foo` variable, execute `gJ` in
-`normal` mode. You'll see that the field definitions are all joined.
-
-This doesn't use any AST-aware tools, so for example if you type `gJ` on top of
-the fields, you'll see that only two fields are joined.
-
-### Snippets
-
-Vim-go supports two popular snippet plugins.
-[Ultisnips](https://github.com/SirVer/ultisnips) and
-[neosnippet](https://github.com/Shougo/neosnippet.vim). By default, 
-if you have `Ultisnips` installed it'll work.  Let us install `ultisnips`
-first. Add it between the `plug` directives in your `vimrc` and then run
-`:PlugInstall`. Example:
-
-```vim
-call plug#begin()
-Plug 'fatih/vim-go'
-Plug 'SirVer/ultisnips'
-call plug#end()
-```
-
-There are many helpful snippets. To see the full list check our current
-snippets:
-https://github.com/fatih/vim-go/blob/master/gosnippets/UltiSnips/go.snippets
-
-Let me show some of the snippets that I'm using the most. Change your `main.go`
-content to:
-
-```go
-package main
-
-import "encoding/json"
-
-type foo struct {
-	Message    string
-	Ports      []int
-	ServerName string
-}
-
-func newFoo() (*foo, error) {
-	return &foo{
-		Message:  "foo loves bar",
-		Ports: []int{80},
-		ServerName: "Foo",
-	}, nil
-}
-
-func main() {
-	res, err := newFoo()
-
-	out, err := json.Marshal(res)
-}
-```
-
-Let's put our cursor just after the `newFoo()` expression. Let's panic here if
-the err is non-nil. Type `errp` in insert mode and just hit `tab`. You'll see
-that it'll be expanded and put your cursor inside the `panic()`` function:
+`errp` in insert mode and `tab`:
 
 ```
 if err != nil {
@@ -715,12 +77,6 @@ if err != nil {
 }
 ```
 
-Fill the panic with `err` and move on to the `json.Marshal` statement. Do the
-same for it.
-
-Now let us print the variable `out`. Because variable printing is so popular,
-we have several snippets for it:
-
 ```
 fn -> fmt.Println()
 ff -> fmt.Printf()
@@ -729,23 +85,7 @@ lf -> log.Printf()
 ```
 
 Here `ff` and `lf` are special. They dynamically copy the variable name into
-the format string as well. Try it yourself. Move your cursor to the end of the
-main function and type `ff` and hit tab. After expanding the snippet you can
-start typing. Type `string(out)` and you'll see that both the format string and
-the variadic arguments will be filled with the same string you have typed.
-
-This comes very handy to quickly print variables for debugging.
-Run your file with `:GoRun` and you should see the following output:
-
-```
-string(out) = {"Message":"foo loves bar","Ports":[80],"ServerName":"Foo"}
-```
-
-Great. Now let me show one last snippet that I think is very useful. As you see
-from the output the fields `Message` and `Ports` begin with uppercase
-characters. To fix it we can add a json tag to the struct field. vim-go makes it
-very easy to add field tags. Move your cursor to the end of the `Message`
-string line in the field:
+the format string as well.
 
 ```
 type foo struct {
@@ -765,6 +105,8 @@ type foo struct {
 }
 ```
 
+
+
 It's really amazing. But we can do even better! Go ahead and create a
 snippet expansion for the `ServerName` field. You'll see that it's converted to
 `server_name`. Amazing right?
@@ -777,199 +119,8 @@ type foo struct {
 }
 ```
 
-### vimrc improvements
-
-* Don't forget to change `gofmt` to `goimports`
-
-```vim
-let g:go_fmt_command = "goimports"
-```
-
-* When you save your file, `gofmt` shows any errors during parsing the file. If
-  there are any parse errors it'll show them inside a quickfix list. This is
-  enabled by default. Some people don't like it. To disable it add:
-
-```vim
-let g:go_fmt_fail_silently = 1
-```
-
-* You can change which case it should apply while converting. By default vim-go
-  uses `snake_case`. But you can also use `camelCase` if you wish. For example
-  if you wish to change the default value to camel case use the following
-  setting:
-
-```vim
-let g:go_addtags_transform = "camelcase"
-```
-
-# Beautify it
-
-By default we only have a limited syntax highlighting enabled. There are two
-main reasons. First is that people don't like too much color because it causes
-too much distraction. The second reason is that it impacts
-the performance of Vim a lot. We need to enable it explicitly. First add the
-following settings to your `.vimrc`:
-
-```vim
-let g:go_highlight_types = 1
-```
-
-This highlights the `bar` and `foo` below:
-
-```
-type foo struct{
-  quz string
-}
-
-type bar interface{}
-```
-
-Adding the following:
-
-```vim
-let g:go_highlight_fields = 1
-```
-
-Will highlight the `quz` below:
-
-```go
-type foo struct{
-  quz string
-}
 
 
-f := foo{quz:"QUZ"}
-f.quz # quz here will be highlighted
-```
-
-If we add the following:
-
-```vim
-let g:go_highlight_functions = 1
-let g:go_highlight_methods = 1
-```
-
-We are now also highlighting function names. `Foo` and `main` will now
-be highlighted:
-
-```go
-func (t *T) Foo() {}
-
-func main() {
-}
-```
-
-If you add `let g:go_highlight_operators = 1` it will highlight the following
-operators such as:
-
-```
-- + % < > ! & | ^ * =
--= += %= <= >= != &= |= ^= *= ==
-<< >> &^
-<<= >>= &^=
-:= && || <- ++ --
-```
-
-If you add `let g:go_highlight_extra_types = 1` the following extra types
-will be highlighted as well:
-
-```
-bytes.(Buffer)
-io.(Reader|ReadSeeker|ReadWriter|ReadCloser|ReadWriteCloser|Writer|WriteCloser|Seeker)
-reflect.(Kind|Type|Value)
-unsafe.Pointer
-```
-
-Let's move on to more useful highlights. What about build tags? It's not easy
-to implement it without looking into the `go/build` document. Let us first add
-the following: `let g:go_highlight_build_constraints = 1` and change your
-`main.go` file to:
-
-```
-// build linux
-package main
-```
-
-You'll see that it's gray, thus it's not valid. Prepend `+` to the `build` word and save it again:
-
-```
-// +build linux
-package main
-```
-
-Do you know why? If you read the `go/build` package you'll see that the
-following is buried in the document:
-
-> ... preceded only by blank lines and other line comments.
-
-Let us change our content again and save it to:
-
-
-```
-// +build linux
-
-package main
-```
-
-You'll see that it automatically highlighted it in a valid way. It's really
-great. If you go and change `linux` to something you'll see that it also checks
-for valid official tags (such as `darwin`,`race`, `ignore`, etc... )
-
-
-Another similar feature is to highlight the Go directive `//go:generate`. If
-you put `let g:go_highlight_generate_tags = 1` into your vimrc, it'll highlight
-a valid directive that is processed with the `go generate` command.
-
-We have a lot more highlight settings, these are just a sneak peek of it. For
-more check out the settings via `:help go-settings`
-
-
-### vimrc improvements
-
-* Some people don't like how the tabs are shown. By default Vim shows `8`
-  spaces for a single tab. However it's up to us how to represent in Vim. The
-  following will change it to show a single tab as 4 spaces:
-
-```
-autocmd BufNewFile,BufRead *.go setlocal noexpandtab tabstop=4 shiftwidth=4 
-```
-
-This setting will not expand a tab into spaces. It'll show a single tab as `4`
-spaces. It will use `4` spaces to represent a single indent.
-
-* A lot of people ask for my colorscheme. I'm using a slightly modified
-`molokai`. To enable it add the Plug directive just between the plug
-definitions:
-
-```vim
-call plug#begin()
-Plug 'fatih/vim-go'
-Plug 'fatih/molokai'
-call plug#end()
-```
-
-Also add the following to enable molokai with original color scheme and 256
-color version:
-
-```vim
-let g:rehash256 = 1
-let g:molokai_original = 1
-colorscheme molokai
-```
-
-After that restart Vim and call `:PlugInstall`. This will pull the plugin
-and install it for you. After the plugin is installed, you need to restart Vim
-again.
-
-# Check it
-
-From the previous examples you saw that we had many commands that would show
-the quickfix window when there was an issue. For example `:GoBuild` shows
-errors from the compile output (if any). Or for example `:GoFmt` shows the
-parse errors of the current file while formatting it.
-
-We have many other commands that allows us to call and then collect errors,
-warnings or suggestions.
 
 For example `:GoLint`. Under the hood it calls `golint`, which is a command
 that suggests changes to make Go code more idiomatic. There
@@ -1022,194 +173,27 @@ setting:
 let g:go_metalinter_deadline = "5s"
 ```
 
-# Navigate it
+## Alternate files
 
-So far we have only jumped between two files, `main.go` and `main_test.go`. It's
-really easy to switch if you have just two files in the same directory. But
-what if the project gets larger and larger with time? Or what if the file
-itself is so large that you have hard time navigating it?
+`:GoAlternate` `main_test.go` alts between `main.go`
 
-
-### Alternate files
-
-vim-go has several ways of improving navigation. First let me
-show how we can quickly jump between a Go source code and its test file.
-
-Suppose you have both a `foo.go` and its equivalent test file `foo_test.go`.
-If you have `main.go` from the previous examples with its test file you can
-also open it. Once you open it just execute the following Vim command:
-
-```vim
-:GoAlternate
-```
-
-You'll see that you switched immediately to `main_test.go`. If you execute it
-again, it'll switch to `main.go`. `:GoAlternate` works as a toggle and is
-really useful if you have a package with many test files.  The idea is very
-similar to the plugin [a.vim](https://github.com/vim-scripts/a.vim) command
-names. This plugin jumps between a `.c` and `.h` file. In our case
-`:GoAlternate` is used to switch between a test and non-test file.
-
-### Go to definition
-
-One of the most used features is `go to definition`. From the beginning, vim-go 
-had the `:GoDef` command that jumps to any identifier's declaration. Let
-us first create a `main.go` file to show it in action. Create it with the
-following content:
-
-```go
-package main
-
-import "fmt"
-
-type T struct {
-	Foo string
-}
-
-func main() {
-	t := T{
-		Foo: "foo",
-	}
-
-	fmt.Printf("t = %+v\n", t)
-}
-```
-
-Now we have here several ways of jumping to declarations. For example if you put
-your cursor on top of `T` expression just after the main function and call
-`:GoDef` it'll jump to the type declaration.
-
-If you put your cursor on top of the `t` variable declaration just after the
-main function and call `:GoDef`, you'll see that nothing will happen. Because
-there is no place to go, but if you scroll down a few lines and put your cursor
-to the `t` variable used in `fmt.Printf()` and call `:GoDef`, you'll see that
-it jumped to the variable declaration.
-
-`:GoDef` not only works for local scope, it works also globally
-(across`GOPATH`).  If, for example, you put your cursor on top of the `Printf()`
-function and call `:GoDef`, it'll jump directly to the `fmt` package.  Because
-this is used so frequently, vim-go overrides the built in Vim shortcuts `gd`
-and `ctrl-]` as well. So instead of `:GoDef` you can easily use `gd` or
-`ctrl-]`
-
-Once we jump to a declaration, we also might want to get back into our previous
-location. By default there is the Vim shortcut  `ctrl-o` that jumps to the
-previous cursor location. It works great when it does, but not good enough if
-you're navigating between Go declarations. If, for example, you jump to a file
-with `:GoDef` and then scroll down to the bottom, and then maybe to the top,
-`ctrl-o` will remember these locations as well. So if you want to jump back to
-the previous location when invoking `:GoDef`, you have to hit `ctrl-o` multiple
-times. And this is really annoying.
-
-We don't need to use this shortcut though, as vim-go has a better implementation
-for you. There is a command `:GoDefPop` which does exactly this. vim-go
-keeps an internal stack list for all the locations you visit with `:GoDef`.
-This means you can jump back easily again via `:GoDefPop` to your older
-locations, and it works even if you scroll down/up in a file. And because this
-is also used so many times we have the shortcut `ctrl-t` which calls under the
-hood `:GoDefPop`. So to recap:
+## Go to definition
 
 * Use `ctrl-]` or `gd` to jump to a definition, locally or globally
 * Use `ctrl-t` to jump back to the previous location 
 
-Let us move on with another question, suppose you jump so far that you just
-want to back to where you started? As mentioned earlier,
-vim-go keeps an history of all your locations invoked via `:GoDef`. There is a
-command that shows all these and it's called `:GoDefStack`. If you call it,
-you'll see that a custom window with a list of your old locations will be
-shown. Just navigate to your desired location and hit enter.  And finally to
-clear the stack list anytime call `:GoDefStackClear`.
-
+`:GoDefStack`
+`:GoDefStackClear`
 
 ### Move between functions
-
-From the previous example we see that `:GoDef` is nice if you know where you want to
-jump. But what if you don't know what your next destination is? Or you just
-partially know the name of a function? 
-
-In our `Edit it` section I mentioned a tool called `motion`, which is a
-custom built tool just for vim-go. `motion` has other capabilities as well.
-`motion` parses your Go package and thus has a great understanding of all
-declarations. We can take advantage of this feature for jumping between
-declarations. There are two commands, which are not available until you install
-a certain plugin. The commands are:
 
 ```
 :GoDecls
 :GoDeclsDir
 ```
 
-First let us enable these two commands by installing the necessary plugin. The
-plugin is called [ctrlp](https://github.com/ctrlpvim/ctrlp.vim). Long-time Vim
-users have it installed already. To install it add the following line between
-your `plug` directives and call `:PlugInstall` to install it:
+`ma` you'll see that `ctrlp` filters the list for you. If you hit `enter` it will automatically jump to it.
 
-```vim
-Plug 'ctrlpvim/ctrlp.vim'
-```
-
-Once you have it installed, use the following `main.go` content:
-
-```go
-package main
-
-import "fmt"
-
-type T struct {
-	Foo string
-}
-
-func main() {
-	t := T{
-		Foo: "foo",
-	}
-
-	fmt.Printf("t = %+v\n", t)
-}
-
-func Bar() string {
-	return "bar"
-}
-
-func BarFoo() string {
-	return "bar_foo"
-}
-```
-
-And a `main_test.go` file with the following content:
-
-```go
-package main
-
-import (
-	"testing"
-)
-
-type files interface{}
-
-func TestBar(t *testing.T) {
-	result := Bar()
-	if result != "bar" {
-		t.Errorf("expecting bar, got %s", result)
-	}
-}
-
-func TestQuz(t *testing.T) {
-	result := Qux("bar")
-	if result != "bar" {
-		t.Errorf("expecting bar, got %s", result)
-	}
-
-	result = Qux("qux")
-	if result != "INVALID" {
-		t.Errorf("expecting INVALID, got %s", result)
-	}
-}
-```
-
-Open `main.go` and call `:GoDecls`. You'll see that `:GoDecls` shows all type
-and function declarations for you. If you type `ma` you'll see that `ctrlp`
-filters the list for you. If you hit `enter` it will automatically jump to it.
 The fuzzy search capabilities combined with `motion`'s AST capabilities brings
 us a very simple to use but powerful feature.
 
@@ -2158,21 +1142,3 @@ can manually set the browser via:
 ```
 let g:go_play_browser_command = "chrome"
 ```
-
-# Donation
-
-This tutorial was created by me in my spare time. If you like it and would
-like to donate, you now you can be a fully supporter by [being a
-patron](https://www.patreon.com/fatih)! 
-
-By being a patron, you are enabling vim-go to grow and mature, helping me to
-invest in bug fixes, new documentation, and improving both current and future
-features. It's completely optional and is just a direct way to support vim-go's
-ongoing development. Thanks!
-
-[https://www.patreon.com/fatih](https://www.patreon.com/fatih)
-
-## TODO Commands
-* :GoPath
-* :AsmFmt
-
